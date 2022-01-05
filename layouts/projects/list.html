@@ -1,0 +1,43 @@
+{{ define "title" }}
+  {{- if eq .Kind "term" -}}
+    {{- i18n .Data.Plural 1 | title -}}
+    {{- print ": " -}}
+  {{- end -}}
+  {{- i18n (lower .Title) | default .Title | title }} · {{ .Site.Title -}}
+{{ end }}
+{{ define "content" }}
+<section class="container">
+    <h1 class="title">
+      <a class="title-link" href="{{ .Permalink | safeURL }}">
+        {{- if eq .Kind "term" -}}
+          {{- i18n .Data.Plural 1 | title -}}
+          {{- print ": " -}}
+        {{- end -}}
+        {{- i18n (lower .Title) | default .Title | title -}}
+      </a>
+    </h1>
+    {{ .Content }}
+    <div class="container">
+      {{ range .Paginator.Pages }}
+      <div class="project-item">
+        <a href="{{ .Params.externalLink | default .RelPermalink }}">
+          {{ if isset .Params "thumbnail" -}}
+            {{- $thumbnail := resources.Get .Params.thumbnail -}}
+            <img src="{{ ($thumbnail.Fill "200x200 q100 Center").RelPermalink }}">
+          {{- end}}
+          <a class="title" href="{{ .Params.externalLink | default .RelPermalink }}">{{ .Title }}</a>
+          {{ if and (isset .Params "start_date") (isset .Params "end_date") -}}
+              {{ dateFormat "January, 2016" .Params.start_date}} - {{ dateFormat "January, 2016" .Params.end_date}}
+          {{- end}}
+          {{ if isset .Params "tags" -}}
+            {{ range $name := .Params.tags -}}
+                {{$name}}
+            {{- end}}
+          {{- end}}
+        </a>
+      </div>
+      {{ end }}
+    </div>
+    {{ partial "pagination.html" . }}
+</section>
+{{ end }}
