@@ -1,0 +1,17 @@
+@import "variables";
+
+.project-item { 
+    clear: both; 
+    color: $bg-color;
+}
+
+.project-item img { 
+    float:left; 
+    width: 20%; 
+    box-shadow: 0 0 14px rgba(0,0,0,.2);
+}
+.project-item div { 
+    float:left; 
+    width: 80%; 
+    padding-left: 20px 
+}
