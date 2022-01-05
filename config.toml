@@ -1,0 +1,55 @@
+baseURL = 'https://clementjambon.github.io/'
+title = 'Clément JAMBON'
+languageCode = 'en'
+defaultcontentlanguage = "en"
+theme = ["hugo-coder", "hugo-cite"] 
+
+paginate = 20
+
+pygmentsstyle = "bw"
+pygmentscodefences = true
+pygmentscodefencesguesssyntax = true
+
+[params]
+    author = "Clément JAMBON"
+    since = 2021
+    info = "Third-year student at l'École polytechnique"
+    description = "Clément Jambon's personal website"
+    keywords = "student,developer,personal"
+    avatarurl = "images/avatar.jpg"
+
+    # Specify light/dark colorscheme
+    # Supported values:
+    # "auto" (use preference set by browser)
+    # "dark" (dark background, light foreground)
+    # "light" (light background, dark foreground) (default)
+    colorScheme = "auto"
+    # Hide the toggle button, along with the associated vertical divider
+    hideColorSchemeToggle = false
+
+    # Custom CSS
+    customCSS = ["css/hugo-cite.css", "css/custom.css"]
+    # Custom SCSS, file path is relative to Hugo's asset folder (default: {your project root}/assets)
+    customSCSS = ["scss/custom.scss"]
+
+[[params.social]]
+name = "Github"
+icon = "fa fa-2x fa-github"
+weight = 1
+url = "https://github.com/clementjambon/"
+
+[[params.social]]
+name = "LinkedIn"
+icon = "fa fa-2x fa-linkedin"
+weight = 2
+url = "https://www.linkedin.com/in/clementjambon/"
+
+[[languages.en.menu.main]]
+name = "About"
+weight = 1
+url = "about/"
+
+[[languages.en.menu.main]]
+name = "Projects"
+weight = 2
+url = "projects/"
