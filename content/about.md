@@ -7,6 +7,9 @@ aliases: ["about"]
 A `pdf` version of my resume is available [here](/resume.pdf).
 
 ## Education
+* **ETH, Zürich, Switzerland** - 2022 -- present
+    * Pursuing a Master of Science, graduating in Summer 2024
+    * Majoring in computer science and specializing in *Visual and Interactive Computing*
 * **École Polytechnique, Paris, France** - 2019 -- present
     * Pursuing a postgraduate engineering degree in one of France’s leading schools of science and engineering, to be conferred in 2023
     * Majoring in computer science and taking part in the advanced program *Image, Vision and Machine Learning*
@@ -16,6 +19,10 @@ A `pdf` version of my resume is available [here](/resume.pdf).
     * Was admitted to most of France’s top-ranking schools including Mines ParisTech, École Centrale Paris, École Normale Supérieure and l’École Polytechnique
 
 ## Work experience
+* **Research intern (Internship), Inria, GraphDeco Team, Sophia-Antipolis, France** - March 2022 -- August 2022
+    * Took part into a full-time research project supervised by George Drettakis investigating *Neural Radiance Fields (NeRF)* and ways of editing them. This project was made possible thanks to rich and extensive discussions with multiple academic collaborators both within and outside the lab
+    * Contributed to another PhD's work resulting in a publication that will soon be released at SIGGRAPH Asia 2022
+    * Presented several state-of-the-art advances to the team during reading and group meetings
 * **Computer Vision Engineer (Internship), Wemap, Montpellier, France** - June 2021 -- August 2021
     * Developed a robust monocular *SLAM* pipeline supporting 360-degree cameras based on indirect methods
     * Devised a state-of-the-art prototype of visual positioning system for large datasets of indoor locations
@@ -37,11 +44,11 @@ A `pdf` version of my resume is available [here](/resume.pdf).
 ## Skills
 * **Software development**: C, C++, Python, Java, C#, Rust (beginner)
 * **Web development**: JavaScript, Typescript, React, Node.js, Express.js, Django, SQL, Hugo
-* **Computer Graphics**: OpenGL API, Vulkan API (beginner), GPU architecture, rendering pipelines, ray tracing, game development with Unity
-* **Computer Vision**: image processing, features extraction, multiple view geometry, SLAM and SfM pipelines
+* **Computer Graphics**: OpenGL API, Vulkan API (beginner), CUDA, GPU architecture, rendering pipelines, ray tracing, game development with Unity
+* **Computer Vision**: image processing, multiple view geometry, SLAM and SfM pipelines
 * **Machine Learning**: PyTorch, Scikit-Learn, Topological Data Analysis, Graph Representation Learning, NLP, Reinforcement Learning
 * **Network Engineering and computer architecture**: Internet and IoT protocols, CPU architecture, memory hierarchy, cybersecurity, compilation
-* **Tools**: Unix/Linux, LaTeX, CMake, Git, Continuous Integration (CI)
+* **Tools**: Unix/Linux, LaTeX, CMake, Git, Continuous Integration (CI), Inkscape
 * **Driving licence**
 
 ## Interests & Activities
