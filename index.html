@@ -24,11 +24,11 @@
               </p>
               <p>
 
-                I have just completed a five-month research internship at Inria Sophia-Antipolis in the <a href="https://team.inria.fr/graphdeco/fr/">GraphDeco team</a>. There, I was supervised by <a href="http://www-sop.inria.fr/members/George.Drettakis/">George Drettakis</a> and kindly advised by <a href="https://grgkopanas.github.io/">Georgios Kopanas</a>, <a href="https://www.sdiolatz.info/">Stavros Diolatzis</a> and <a href="https://people.mpi-inf.mpg.de/~tleimkue/">Thomas Leimkühler</a>. My work was mostly focused on point-based neural rendering and <a href="https://www.matthewtancik.com/nerf">Neural Radiance Fields</a> a.k.a. NeRF. This resulted in a contribution to <a href="https://repo-sam.inria.fr/fungraph/neural_catacaustics/">another PhD's publication</a> released at SIGGRAPH ASIA 2022 and a personal publication that will soon be submitted. 
+                I have recently completed a five-month research internship at Inria Sophia-Antipolis in the <a href="https://team.inria.fr/graphdeco/fr/">GraphDeco team</a>. There, I was supervised by <a href="http://www-sop.inria.fr/members/George.Drettakis/">George Drettakis</a> and kindly advised by <a href="https://grgkopanas.github.io/">Georgios Kopanas</a>, <a href="https://www.sdiolatz.info/">Stavros Diolatzis</a> and <a href="https://people.mpi-inf.mpg.de/~tleimkue/">Thomas Leimkühler</a>. My work was mostly focused on point-based neural rendering and <a href="https://www.matthewtancik.com/nerf">Neural Radiance Fields</a> a.k.a. NeRF. This resulted in a contribution to <a href="https://repo-sam.inria.fr/fungraph/neural_catacaustics/">Neural Point Catacaustics</a> released at SIGGRAPH ASIA 2022 and <a href="https://repo-sam.inria.fr/fungraph/nerfshop/">NeRFshop</a>, a personal publication to be presented at I3D 2023. 
               </p>
               <p>
 
-                I am interested in computer vision, computer graphics and their connections with machine learning. Most notably, I am focusing on topics such as neural rendering, differentiable rendering and <a href="https://neuralfields.cs.brown.edu/">neural fields</a>. Some of my recent interests also include neuro-symbolic AI and machine perception.
+                I am interested in computer vision, computer graphics and their connections with machine learning. Most notably, I am currently focusing on topics such as neural rendering, diffusion models and <a href="https://neuralfields.cs.brown.edu/">neural fields</a>. Some of my recent interests also include neuro-symbolic AI and machine perception.
               </p>
               <p style="text-align:center">
                 <a href="mailto:clement.jambon@polytechnique.edu">Email</a> &nbsp/&nbsp
@@ -52,9 +52,8 @@
                 </td>
             </tr>
         </tbody></table>
-        <table width="100%" align="center" border="0" cellpadding="20"><tbody>
             
-        <table style="width:100%;border:0px;border-spacing:0px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
+        <table width="100%" align="center" border="0" cellpadding="20"><tbody>
             <tr>
                 <td style="padding:20px;width:25%;vertical-align:middle">
                     <img src="images/logo_ethz.png" alt="logo-ethz" width="250">
@@ -101,13 +100,57 @@
               </td>
             </tr>
         </tbody></table>
-        <table width="100%" align="center" border="0" cellpadding="20"><tbody>
 
-        <table style="width:100%;border:0px;border-spacing:0px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
-            <tr onmouseout="catacaustics_stop()" onmouseover="catacaustics_start()">
+        <table width="100%" align="center" border="0" cellpadding="20"><tbody>
+          <tr onmouseout="nerfshop_stop()" onmouseover="nerfshop_start()">
+              <td style="padding:20px;width:25%;vertical-align:middle;">
+                <div class="one">
+                  <div class="two" id='nerfshop_image'><video  width=100% muted autoplay loop>
+                  <source src="images/nerfshop-teaser.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+                  </video></div>
+                  <img src='images/nerfshop-teaser.jpg' width="160">
+                </div>
+                <script type="text/javascript">
+                  function nerfshop_start() {
+                    document.getElementById('nerfshop_image').style.opacity = "1";
+                  }
+    
+                  function nerfshop_stop() {
+                    document.getElementById('nerfshop_image').style.opacity = "0";
+                  }
+                  nerfshop_stop()
+                </script>
+            </td>
+            <td style="padding:20px;width:75%;vertical-align:middle">
+              <a href="https://repo-sam.inria.fr/fungraph/nerfshop/">
+                <papertitle>NeRFshop: Interactive Editing of Neural Radiance Fields</papertitle>
+              </a>
+              <br>
+              <strong>Clément Jambon</strong>,
+              <a href="https://www.cg.tuwien.ac.at/staff/BernhardKerbl">Bernhard Kerbl</a>,
+              <a href="https://grgkopanas.github.io/">Georgios Kopanas</a>, <br>
+              <a href="https://scholar.google.com/citations?user=uRSdPokAAAAJ&hl=en">Stavros Diolatzis</a>, 
+              <a href="https://people.mpi-inf.mpg.de/~tleimkue/">Thomas Leimkühler</a>, 
+              <a href="http://www-sop.inria.fr/members/George.Drettakis/">George Drettakis</a>
+              <br>
+              <em>I3D</em>, 2023
+              <br>
+              <a href="https://repo-sam.inria.fr/fungraph/nerfshop/">project page</a>
+              /
+              <a href="http://www-sop.inria.fr/reves/Basilic/2023/JKKDLD23/nerfshop.pdf">pre-print</a>
+              /
+              <a href="https://youtu.be/HC56Zwui1bY">video</a>
+              <p></p>
+              <p>
+                <i>NeRFshop</i> is a novel end-to-end method that allows users to interactively select and deform objects through cage-based transformations. Once complete, edits can be collapsed and saved as a portable NeRF representation through a distillation process.
+              </p>
+            </td>
+          </tr>
+          <tr onmouseout="catacaustics_stop()" onmouseover="catacaustics_start()">
                 <td style="padding:20px;width:25%;vertical-align:middle">
-                  <div class="one">
-                    <div class="two" id='catacaustics_image'><video  width=100% muted autoplay loop>
+                  <div class="one-catacaustics">
+                    <div class="two-catacaustics" id='catacaustics_image'><video  width=100% muted autoplay loop>
                     <source src="images/neural-catacaustics.mp4" type="video/mp4">
                     Your browser does not support the video tag.
                     </video></div>
