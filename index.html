@@ -8,8 +8,23 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚴‍♂️</text></svg>">
+
+    <script type="text/javascript">
+        profile_array = new Array();
+        profile_array[0] = 'profile1.jpg';
+        profile_array[1] = 'profile2.jpg';
+        profile_array[2] = 'profile3.jpg';
+        profile_array[3] = 'profile4.jpg';
+    
+    function getRandomImage() {
+        var num = Math.floor(Math.random() * profile_array.length);
+        var img = profile_array[num];
+        document.getElementById("random-profile").innerHTML = ('<img style="width:100%;max-width:100%" alt="profile photo" src="images/' + img + '" class="hoverZoomLink">');
+    }
+    </script>
+
   </head>
-  <body>
+  <body onload="getRandomImage()">
   <section class="section">
     <div class="container">
         <h1 class="title">
@@ -50,8 +65,8 @@
                 </p>
             </div>
             <div class="column is-one-third">
-                <div class="image">
-                    <img style="width:100%;max-width:100%" alt="profile photo" src="images/profile.jpg" class="hoverZoomLink">
+                <div class="image" id="random-profile">
+                    <!-- <img style="width:100%;max-width:100%" alt="profile photo" src="images/profile.jpg" class="hoverZoomLink"> -->
                 </div>
             </div>
         </div>
