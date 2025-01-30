@@ -11,7 +11,7 @@
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚴‍♂️</text></svg>">
 
-    <script type="text/javascript">
+    <!-- <script type="text/javascript">
         profile_array = new Array();
         profile_array[0] = 'profile/profile1.jpg';
         profile_array[1] = 'profile/profile2.jpg';
@@ -26,11 +26,23 @@
             var img = profile_array[num];
             document.getElementById("random-profile").innerHTML = ('<img style="width:100%;max-width:100%" alt="profile photo" src="images/' + img + '" class="hoverZoomLink">');
         }
+    </script> -->
+    <link rel="stylesheet" href="./splats/index.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "playcanvas": "https://cdn.jsdelivr.net/npm/playcanvas@2.3.3/build/playcanvas.mjs",
+                "viewerSettings": "./splats/settings.json"
+            }
+        }
     </script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@playcanvas/web-components@0.1.11/dist/pwc.mjs"></script>
 
 </head>
 
-<body onload="getRandomImage()">
+<!-- <body onload="getRandomImage()"> -->
+
+<body>
     <section class="section">
         <div class="container">
             <h1 class="title">
@@ -48,10 +60,10 @@
                 </article>
                 <div class="pb-8"></div> -->
                     <p class="description-p"> I am a PhD student at <a href="https://www.eecs.mit.edu/">MIT
-                            EECS</a> where I am supervised by Prof.
+                            EECS</a> advised by Prof.
                         <a href="https://people.csail.mit.edu/mina/">Mina Konaković Luković</a> in the <a
                             href="https://adg.csail.mit.edu/">Algorithmic Design Group</a>.
-                        I just visited the <a href="https://3d.snu.ac.kr/">3D Vision
+                        Before that, I visited the <a href="https://3d.snu.ac.kr/">3D Vision
                             Lab</a> of SNU 🇰🇷 for my Master's Thesis supervised by Prof. <a
                             href="https://3d.snu.ac.kr/members/">Young Min Kim</a> and Prof. <a
                             href="https://inf.ethz.ch/people/person-detail.sorkine.html">Olga Sorkine-Hornung</a>. I
@@ -59,13 +71,13 @@
                             href="https://www.changwoon.info/">Changwoon Choi</a>, <a
                             href="https://dszhang.me/about">Dongsu Zhang</a> and <a
                             href="https://3d.snu.ac.kr/members/">Mingi Lee</a>.
-                        Before that, I
-                        was a research intern at <a href="https://research.nvidia.com/">NVIDIA Research</a> under
+                        Quite a while ago, I was a research intern at <a href="https://research.nvidia.com/">NVIDIA
+                            Research</a> under
                         the supervision of <a href="https://research.nvidia.com/person/thomas-muller">Thomas Müller</a>
                         and <a href="https://research.nvidia.com/person/merlin-nimier-david">Merlin Nimier-David</a>.
                     </p>
                     <div class="pb-4"></div>
-                    <p class="description-p"> I recently graduated from <a href="https://ethz.ch/">ETH Zürich</a>🇨🇭
+                    <!-- <p class="description-p"> I recently graduated from <a href="https://ethz.ch/">ETH Zürich</a>🇨🇭
                         where I
                         followed a master of science. In the <a href="https://inf.ethz.ch/">Computer Science
                             Department</a>, I majored in
@@ -73,18 +85,17 @@
                             and Interactive Computing</i> and minored in <i>Machine Learning</i>. Additionally, I
                         hold a postgraduate engineering degree from <a href="https://www.polytechnique.edu/">École
                             polytechnique</a> in Paris 🎓.
-                    </p>
+                    </p> -->
                     <div class="pb-4"></div>
                     <p class="description-p">I am interested in Computer Graphics and its connections to machine
                         learning. Until now, my research was mostly focused on high-performance,
                         generalizable, and
                         manipulable neural rendering and generation techniques. These days, I am exploring new
-                        algorithms
-                        and representations to easily and efficiently design objects 🪑, robots 🤖 and materials 🧩 that
+                        algorithms and representations to easily and efficiently design objects 🪑, robots 🤖 and
+                        materials 🧩 that
                         live in the real world! Some of my recent interests also include
                         computer-aided design, computational fabrication, geometry processing, generative modeling,
-                        natural language processing, formal languages
-                        and optimal transport 🖥️.
+                        all types of grammars, funky Monte Carlo estimators and optimal transport 🖥️.
                     </p>
                     <div class="pb-4"></div>
                     <p class="description-p">In my free time, I enjoy hiking ⛰️,
@@ -100,7 +111,8 @@
                         <a onclick="emailAlert()">Email</a> &nbsp/&nbsp
                         <a href="https://scholar.google.com/citations?user=fACZ9fcAAAAJ">Scholar</a> &nbsp/&nbsp
                         <a href="data/cv.pdf">CV</a> &nbsp/&nbsp
-                        <a href="https://twitter.com/clementjbn">Twitter</a> &nbsp/&nbsp
+                        <a href="https://x.com/clementjambon">Twitter</a> &nbsp/&nbsp
+                        <a href="https://bsky.app/profile/clementjambon.bsky.social">Bluesky</a> &nbsp/&nbsp
                         <a href="https://github.com/clementjambon/">Github</a> &nbsp/&nbsp
                         <a href="https://www.linkedin.com/in/clementjambon/">LinkedIn</a>
                     </p>
@@ -112,7 +124,38 @@
                     </script>
                 </div>
                 <div class="column is-one-third">
-                    <div class="image" id="random-profile">
+                    <div class="image" id="random-profile" style="width:100%;max-width:100%">
+                        <pc-app antialias="false" depth="false" high-resolution="true" stencil="false">
+                            <pc-asset id="camera-controls"
+                                src="https://cdn.jsdelivr.net/npm/playcanvas@2.3.1/scripts/esm/camera-controls.mjs"
+                                preload></pc-asset>
+                            <pc-asset id="ply" type="gsplat" src="./splats/scene.compressed.ply"></pc-asset>
+                            <pc-scene>
+                                <!-- Camera (with XR support) -->
+                                <pc-entity name="camera root">
+                                    <pc-entity name="camera">
+                                        <pc-camera nearClip="0.01" farClip="1000" horizontalFov="true"
+                                            tonemap="none"></pc-camera>
+                                        <pc-scripts>
+                                            <pc-script name="cameraControls"></pc-script>
+                                        </pc-scripts>
+                                    </pc-entity>
+                                </pc-entity>
+                                <!-- Light (for XR controllers) -->
+                                <pc-entity name="light" rotation="35 45 0">
+                                    <pc-light color="white" intensity="1.5"></pc-light>
+                                </pc-entity>
+                                <!-- Splat -->
+                                <pc-entity name="splat" rotation="0 0 180">
+                                    <pc-splat asset="ply"></pc-splat>
+                                </pc-entity>
+                            </pc-scene>
+                        </pc-app>
+
+                        <!-- Loading Indicator -->
+                        <div id="loadingIndicator">Loading...</div>
+
+                        <script type="module" src="./splats/index.js"></script>
                         <!-- <img style="width:100%;max-width:100%" alt="profile photo" src="images/profile.jpg" class="hoverZoomLink"> -->
                     </div>
                 </div>
