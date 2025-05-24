@@ -95,7 +95,7 @@
                         materials 🧩 that
                         live in the real world! Some of my recent interests also include
                         computer-aided design, computational fabrication, geometry processing, generative modeling,
-                        all types of grammars, funky Monte Carlo estimators and optimal transport 🖥️.
+                        symmetries and funky Monte Carlo estimators 🖥️.
                     </p>
                     <div class="pb-4"></div>
                     <p class="description-p">In my free time, I enjoy hiking ⛰️,
@@ -243,6 +243,32 @@
             <h1 class="title">Publications</h1>
             <div class="columns box">
                 <div class="column is-one-quarter">
+                    <div id="brep-teaser" class="image" style="margin: auto;">
+                        <img src="images/brep_teaser.png" alt="brep-teaser">
+                    </div>
+                </div>
+                <div class="column">
+                    <p>
+                        <a href="#"><strong>BrepDiff: Single-stage B-rep Diffusion Model</strong></a> (SIGGRAPH 2025)
+                        <br>
+                        Mingi Lee<sup>*</sup>,
+                        <a href="https://dszhang.me/about">Dongsu Zhang<sup>*</sup></a>,
+                        <strong>Clément Jambon<sup>*</sup></strong>,
+                        <a href="https://3d.snu.ac.kr/members/">Young Min Kim</a>
+                        <br>
+                        <i>BrepDiff</i> is a simple, single-stage diffusion model for generating Boundary
+                        Representations (B-reps). It generates B-reps by denoising point-based face samples with a
+                        dedicated noise schedule. Unlike multi-stage methods, BrepDiff enables intuitive, editable
+                        geometry creation, including completion, merging, and interpolation, while achieving competitive
+                        performance on unconditional generation.
+                        <br>
+                        <strong>Coming Soon!</strong>
+                    </p>
+                </div>
+            </div>
+            <div class="pb-4"></div>
+            <div class="columns box">
+                <div class="column is-one-quarter">
                     <video width=100% muted autoplay loop>
                         <source src="images/nerfshop-teaser.mp4" type="video/mp4">
                         Your browser does not support the video tag.
@@ -260,8 +286,9 @@
                         <a href="https://people.mpi-inf.mpg.de/~tleimkue/">Thomas Leimkühler</a>,
                         <a href="http://www-sop.inria.fr/members/George.Drettakis/">George Drettakis</a>
                         <br>
-                        <i>NeRFshop</i> is a novel end-to-end method that allows users to interactively select and
-                        deform objects through cage-based transformations. Once complete, edits can be collapsed and
+                        <i>NeRFshop</i> is an end-to-end method that allows users to interactively select and
+                        deform objects through cage-based transformations within NeRFs. Once complete, edits can be
+                        collapsed and
                         saved as a portable NeRF representation through a distillation process.
                         <br>
                         <a href="https://repo-sam.inria.fr/fungraph/nerfshop/">Project page</a>
@@ -296,8 +323,8 @@
                         <strong>Clément Jambon</strong>,
                         <a href="http://www-sop.inria.fr/members/George.Drettakis/">George Drettakis</a>
                         <br>
-                        We introduce a new point-based representation to compute <i>Neural Point Catacaustics</i>
-                        allowing novel-view synthesis of scenes with curved reflectors, from a set of casually-captured
+                        <i>Neural Point Catacaustics</i> is a new point-based representation that allows novel-view
+                        synthesis of scenes with curved reflectors, from a set of casually-captured
                         input.
                         <br>
                         <a href="https://repo-sam.inria.fr/fungraph/neural_catacaustics/">Project page</a>
