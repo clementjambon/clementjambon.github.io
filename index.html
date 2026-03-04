@@ -11,22 +11,23 @@
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚴‍♂️</text></svg>">
 
-    <!-- <script type="text/javascript">
-        profile_array = new Array();
-        profile_array[0] = 'profile/profile1.jpg';
-        profile_array[1] = 'profile/profile2.jpg';
-        profile_array[2] = 'profile/profile3.jpg';
-        profile_array[3] = 'profile/profile4.jpg';
-        profile_array[4] = 'profile/profile5.jpg';
-        profile_array[5] = 'profile/profile6.jpg';
-        profile_array[6] = 'profile/profile7.jpg';
+    <script type="text/javascript">
+        var profile_array = [
+            'profile/profile1.jpg',
+            'profile/profile2.jpg',
+            'profile/profile3.jpg',
+            'profile/profile4.jpg',
+            'profile/profile5.jpg',
+            'profile/profile6.jpg',
+            'profile/profile7.jpg',
+        ];
 
         function getRandomImage() {
             var num = Math.floor(Math.random() * profile_array.length);
             var img = profile_array[num];
-            document.getElementById("random-profile").innerHTML = ('<img style="width:100%;max-width:100%" alt="profile photo" src="images/' + img + '" class="hoverZoomLink">');
+            document.getElementById("random-profile").innerHTML = '<img style="width:100%;max-width:100%" alt="profile photo" src="images/' + img + '" class="hoverZoomLink">';
         }
-    </script> -->
+    </script>
     <link rel="stylesheet" href="./splats/index.css">
     <script type="importmap">
         {
@@ -39,8 +40,6 @@
     <script type="module" src="https://cdn.jsdelivr.net/npm/@playcanvas/web-components@0.1.11/dist/pwc.mjs"></script>
 
 </head>
-
-<!-- <body onload="getRandomImage()"> -->
 
 <body>
     <section class="section">
@@ -118,40 +117,46 @@
                     </script>
                 </div>
                 <div class="column is-one-third">
-                    <div class="image" id="random-profile" style="width:100%;max-width:100%">
-                        <pc-app antialias="false" depth="false" high-resolution="true" stencil="false">
-                            <pc-asset id="camera-controls"
-                                src="https://cdn.jsdelivr.net/npm/playcanvas@2.3.1/scripts/esm/camera-controls.mjs"
-                                preload></pc-asset>
-                            <pc-asset id="ply" type="gsplat" src="./splats/scene.compressed.ply"></pc-asset>
-                            <pc-scene>
-                                <!-- Camera (with XR support) -->
-                                <pc-entity name="camera root">
-                                    <pc-entity name="camera">
-                                        <pc-camera nearClip="0.01" farClip="1000" horizontalFov="true"
-                                            tonemap="none"></pc-camera>
-                                        <pc-scripts>
-                                            <pc-script name="cameraControls"></pc-script>
-                                        </pc-scripts>
-                                    </pc-entity>
-                                </pc-entity>
-                                <!-- Light (for XR controllers) -->
-                                <pc-entity name="light" rotation="35 45 0">
-                                    <pc-light color="white" intensity="1.5"></pc-light>
-                                </pc-entity>
-                                <!-- Splat -->
-                                <pc-entity name="splat" rotation="0 0 180">
-                                    <pc-splat asset="ply"></pc-splat>
-                                </pc-entity>
-                            </pc-scene>
-                        </pc-app>
-
-                        <!-- Loading Indicator -->
-                        <div id="loadingIndicator">Loading...</div>
-
-                        <script type="module" src="./splats/index.js"></script>
-                        <!-- <img style="width:100%;max-width:100%" alt="profile photo" src="images/profile.jpg" class="hoverZoomLink"> -->
-                    </div>
+                    <div class="image" id="random-profile" style="width:100%;max-width:100%"></div>
+                    <script>
+                        (function () {
+                            var isMobile = window.matchMedia('(max-width: 768px)').matches;
+                            if (isMobile) {
+                                getRandomImage();
+                            } else {
+                                document.getElementById('random-profile').innerHTML = `
+                                    <pc-app antialias="false" depth="false" high-resolution="true" stencil="false">
+                                        <pc-asset id="camera-controls"
+                                            src="https://cdn.jsdelivr.net/npm/playcanvas@2.3.1/scripts/esm/camera-controls.mjs"
+                                            preload></pc-asset>
+                                        <pc-asset id="ply" type="gsplat" src="./splats/scene.compressed.ply"></pc-asset>
+                                        <pc-scene>
+                                            <pc-entity name="camera root">
+                                                <pc-entity name="camera">
+                                                    <pc-camera nearClip="0.01" farClip="1000" horizontalFov="true"
+                                                        tonemap="none"></pc-camera>
+                                                    <pc-scripts>
+                                                        <pc-script name="cameraControls"></pc-script>
+                                                    </pc-scripts>
+                                                </pc-entity>
+                                            </pc-entity>
+                                            <pc-entity name="light" rotation="35 45 0">
+                                                <pc-light color="white" intensity="1.5"></pc-light>
+                                            </pc-entity>
+                                            <pc-entity name="splat" rotation="0 0 180">
+                                                <pc-splat asset="ply"></pc-splat>
+                                            </pc-entity>
+                                        </pc-scene>
+                                    </pc-app>
+                                    <div id="loadingIndicator">Loading...</div>
+                                `;
+                                var splatScript = document.createElement('script');
+                                splatScript.type = 'module';
+                                splatScript.src = './splats/index.js';
+                                document.getElementById('random-profile').appendChild(splatScript);
+                            }
+                        })();
+                    </script>
                 </div>
             </div>
         </div>
