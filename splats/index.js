@@ -6,6 +6,7 @@ import viewerSettings from "viewerSettings" with { type: "json" };
 const profile_height = 500;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    if (!document.querySelector('pc-app')) return;
     const position = viewerSettings.camera.position && new Vec3(viewerSettings.camera.position);
     const target = viewerSettings.camera.target && new Vec3(viewerSettings.camera.target);
 
