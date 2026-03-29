@@ -1,3 +1,51 @@
+.upcoming-pub-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-left: 0.3em;
+}
+
+.upcoming-pub-badge {
+    font-size: 0.45em;
+    color: #aaa;
+    font-weight: 400;
+    vertical-align: super;
+    cursor: default;
+    letter-spacing: 0.01em;
+    transition: color 0.2s;
+}
+
+.upcoming-pub-wrapper:hover .upcoming-pub-badge {
+    color: #555;
+}
+
+.upcoming-pub-tooltip {
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.6em);
+    transform: translateX(-50%);
+    background: #fff;
+    color: #333;
+    font-size: 0.38em;
+    font-weight: 400;
+    white-space: nowrap;
+    padding: 0.7em 1.2em;
+    border-radius: 6px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.10);
+    border: 1px solid #eee;
+    transition: opacity 0.18s, visibility 0.18s;
+    z-index: 10;
+    letter-spacing: 0.01em;
+}
+
+.upcoming-pub-wrapper:hover .upcoming-pub-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
 .description-p {
     text-align: justify;
 }
