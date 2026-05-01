@@ -12,7 +12,7 @@
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚴‍♂️</text></svg>">
 
     <script type="text/javascript">
-        var upcoming_publications = 1;
+        var upcoming_publications = 0;
     </script>
 
     <script type="text/javascript">
@@ -153,8 +153,13 @@
                 (function () {
                     var badge = document.getElementById("upcoming-pub-badge");
                     var tooltip = document.getElementById("upcoming-pub-tooltip");
-                    badge.textContent = "+" + upcoming_publications;
-                    tooltip.textContent = upcoming_publications + " more publication" + (upcoming_publications !== 1 ? "s" : "") + " incoming. Stay tuned! 😉";
+                    if (upcoming_publications === 0) {
+                        var wrapper = document.querySelector(".upcoming-pub-wrapper");
+                        if (wrapper) wrapper.style.display = "none";
+                    } else {
+                        badge.textContent = "+" + upcoming_publications;
+                        tooltip.textContent = upcoming_publications + " more publication" + (upcoming_publications !== 1 ? "s" : "") + " incoming. Stay tuned! 😉";
+                    }
                 })();
             </script>
             <div class="columns box">
