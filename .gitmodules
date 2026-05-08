@@ -1,0 +1,3 @@
+[submodule "wods"]
+	path = wods
+	url = git@github.com:clementjambon/wods-webpage.git
