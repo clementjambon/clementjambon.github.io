@@ -46,6 +46,13 @@
     opacity: 1;
 }
 
+.award-badge {
+    font-weight: 600;
+    color: #b08400;
+    margin-left: 0.4em;
+    white-space: nowrap;
+}
+
 .description-p {
     text-align: justify;
 }
