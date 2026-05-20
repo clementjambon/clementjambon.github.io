@@ -64,6 +64,85 @@
     }
 }
 
+/* News section */
+.news-section {
+    padding-bottom: 1.5rem;
+}
+
+.news-section .container {
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.02);
+    padding: 1.25rem 1.5rem;
+}
+
+.news-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.news-list li {
+    display: flex;
+    gap: 1.2em;
+    padding: 0.55em 0;
+    border-bottom: 1px solid #f0f0f0;
+    line-height: 1.45;
+}
+
+.news-list li:last-child {
+    border-bottom: none;
+}
+
+.news-date {
+    flex: 0 0 6em;
+    color: #aaa;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.news-more {
+    margin-top: 0.3em;
+}
+
+.news-more > summary {
+    list-style: none;
+    cursor: pointer;
+    color: #888;
+    font-size: 0.9em;
+    display: inline-block;
+    padding: 0.4em 0;
+    transition: color 0.2s;
+}
+
+.news-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.news-more > summary:hover {
+    color: #555;
+}
+
+.news-more > summary::before {
+    content: "▾ ";
+}
+
+.news-more[open] > summary::before {
+    content: "▴ ";
+}
+
+.news-more > summary .news-more-less {
+    display: none;
+}
+
+.news-more[open] > summary .news-more-show {
+    display: none;
+}
+
+.news-more[open] > summary .news-more-less {
+    display: inline;
+}
+
 #logo-nvidia {
     max-width: 200px;
 }
