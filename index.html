@@ -36,12 +36,12 @@
     <script type="importmap">
         {
             "imports": {
-                "playcanvas": "https://cdn.jsdelivr.net/npm/playcanvas@2.3.3/build/playcanvas.mjs",
-                "viewerSettings": "./splats/settings.json"
+                "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+                "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/2.1.0/spark.module.js"
             }
         }
     </script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@playcanvas/web-components@0.1.11/dist/pwc.mjs"></script>
     <script type="module" src="./splats/index.js"></script>
 
 </head>
@@ -112,30 +112,12 @@
                                 getRandomImage();
                             } else {
                                 document.getElementById('random-profile').innerHTML = `
-                                    <pc-app antialias="false" depth="false" high-resolution="true" stencil="false">
-                                        <pc-asset id="camera-controls"
-                                            src="https://cdn.jsdelivr.net/npm/playcanvas@2.3.1/scripts/esm/camera-controls.mjs"
-                                            preload></pc-asset>
-                                        <pc-asset id="ply" type="gsplat" src="./splats/scene.compressed.ply"></pc-asset>
-                                        <pc-scene>
-                                            <pc-entity name="camera root">
-                                                <pc-entity name="camera">
-                                                    <pc-camera nearClip="0.01" farClip="1000" horizontalFov="true"
-                                                        tonemap="none"></pc-camera>
-                                                    <pc-scripts>
-                                                        <pc-script name="cameraControls"></pc-script>
-                                                    </pc-scripts>
-                                                </pc-entity>
-                                            </pc-entity>
-                                            <pc-entity name="light" rotation="35 45 0">
-                                                <pc-light color="white" intensity="1.5"></pc-light>
-                                            </pc-entity>
-                                            <pc-entity name="splat" rotation="0 0 180">
-                                                <pc-splat asset="ply"></pc-splat>
-                                            </pc-entity>
-                                        </pc-scene>
-                                    </pc-app>
-                                    <div id="loadingIndicator">Loading...</div>
+                                    <div id="splatViewer">
+                                        <div id="loadingIndicator">
+                                            <div class="loadingLabel">Loading…</div>
+                                            <div class="loadingBar"><div class="loadingBarFill"></div></div>
+                                        </div>
+                                    </div>
                                 `;
                             }
                         })();
