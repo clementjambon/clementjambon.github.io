@@ -107,8 +107,19 @@
                     <div class="image" id="random-profile" style="width:100%;max-width:100%"></div>
                     <script>
                         (function () {
-                            var isMobile = window.matchMedia('(max-width: 768px)').matches;
-                            if (isMobile) {
+                            // Run the splat viewer wherever WebGL2 is available (desktop
+                            // and modern mobile alike); otherwise show a static photo.
+                            // Runtime failures (e.g. low-memory devices) fall back to a
+                            // photo too — see splats/index.js.
+                            function hasWebGL2() {
+                                try {
+                                    return !!(window.WebGL2RenderingContext &&
+                                        document.createElement('canvas').getContext('webgl2'));
+                                } catch (e) {
+                                    return false;
+                                }
+                            }
+                            if (!hasWebGL2()) {
                                 getRandomImage();
                             } else {
                                 document.getElementById('random-profile').innerHTML = `

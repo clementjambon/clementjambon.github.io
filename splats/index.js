@@ -15,6 +15,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const getWidth = () => container.clientWidth || container.offsetWidth;
 
+    // Swap the whole viewer out for a static profile photo. Used when the
+    // splat can't render on this device (context loss, load/init failure).
+    let fellBack = false;
+    const fallbackToImage = (reason) => {
+        if (fellBack) return;
+        fellBack = true;
+        console.warn("Splat viewer falling back to image:", reason);
+        if (typeof window.getRandomImage === "function") {
+            window.getRandomImage();
+        }
+    };
+
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(
@@ -26,10 +38,20 @@ document.addEventListener("DOMContentLoaded", () => {
     camera.position.copy(CAMERA_POSITION);
 
     const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    // Cap the pixel ratio: phones report 3x, which would render ~9x the
+    // pixels and can stall or crash on mobile GPUs.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(getWidth(), VIEWER_HEIGHT);
     renderer.setClearColor(0x000000, 0); // transparent, blends with the page
     container.appendChild(renderer.domElement);
+
+    // A lost GL context (common when a mobile GPU runs out of memory) won't
+    // recover on its own here — drop back to a static photo.
+    renderer.domElement.addEventListener("webglcontextlost", (event) => {
+        event.preventDefault();
+        renderer.setAnimationLoop(null);
+        fallbackToImage("webglcontextlost");
+    });
 
     const spark = new SparkRenderer({ renderer });
     scene.add(spark);
@@ -71,8 +93,8 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .catch((err) => {
             console.error("Failed to load splat scene:", err);
-            const label = container.querySelector(".loadingLabel");
-            if (label) label.textContent = "Failed to load";
+            renderer.setAnimationLoop(null);
+            fallbackToImage(err);
         });
 
     renderer.setAnimationLoop(() => {

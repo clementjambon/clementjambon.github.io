@@ -8,12 +8,28 @@
     min-height: 500px;
 }
 
+/* On mobile, break out of the section padding so the splat spans the full
+   viewport width, edge to edge. */
+@media screen and (max-width: 768px) {
+    #splatViewer {
+        width: 100vw;
+        margin-left: 50%;
+        transform: translateX(-50%);
+    }
+
+    #splatViewer canvas {
+        border-radius: 0;
+    }
+}
+
 #splatViewer canvas {
     display: block;
     width: 100%;
     height: auto;
     border-radius: 8px;
     cursor: grab;
+    /* Let a vertical swipe scroll the page; horizontal drags rotate the splat. */
+    touch-action: pan-y;
 }
 
 #splatViewer canvas.grabbing {
