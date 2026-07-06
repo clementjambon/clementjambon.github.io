@@ -66,19 +66,36 @@ document.addEventListener("DOMContentLoaded", () => {
     splat.rotation.z = Math.PI; // matches the old "0 0 180" flip
     scene.add(splat);
 
-    // "Drag to rotate" hint: reveal once loaded, dismiss on first interaction.
+    // "Drag to rotate" hint: nudge the visitor on a gentle repeating cadence
+    // (visible, then a pause, then again) until they interact with the scene,
+    // after which it stays hidden for good.
     const hint = document.getElementById("splatHint");
-    let hintDismissed = false;
-    const dismissHint = () => {
-        if (hintDismissed) return;
-        hintDismissed = true;
+    const HINT_SHOW_MS = 4000; // how long the hint stays up each time
+    const HINT_HIDE_MS = 9000; // pause between nudges
+    let interacted = false;
+    let hintTimer = null;
+
+    const nudgeCycle = () => {
+        if (interacted) return;
+        hint?.classList.add("visible");
+        hintTimer = setTimeout(() => {
+            hint?.classList.remove("visible");
+            if (interacted) return;
+            hintTimer = setTimeout(nudgeCycle, HINT_HIDE_MS);
+        }, HINT_SHOW_MS);
+    };
+
+    const stopHint = () => {
+        if (interacted) return;
+        interacted = true;
+        if (hintTimer) clearTimeout(hintTimer);
         hint?.classList.remove("visible");
     };
 
     const canvas = renderer.domElement;
     canvas.addEventListener("pointerdown", () => {
         canvas.classList.add("grabbing");
-        dismissHint();
+        stopHint();
     });
     const releaseGrab = () => canvas.classList.remove("grabbing");
     canvas.addEventListener("pointerup", releaseGrab);
@@ -87,9 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     splat.initialized
         .then(() => {
             document.getElementById("loadingIndicator")?.classList.add("hidden");
-            hint?.classList.add("visible");
-            // Auto-hide after a while even if the visitor never touches it.
-            setTimeout(dismissHint, 6000);
+            nudgeCycle();
         })
         .catch((err) => {
             console.error("Failed to load splat scene:", err);
