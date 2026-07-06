@@ -44,9 +44,30 @@ document.addEventListener("DOMContentLoaded", () => {
     splat.rotation.z = Math.PI; // matches the old "0 0 180" flip
     scene.add(splat);
 
+    // "Drag to rotate" hint: reveal once loaded, dismiss on first interaction.
+    const hint = document.getElementById("splatHint");
+    let hintDismissed = false;
+    const dismissHint = () => {
+        if (hintDismissed) return;
+        hintDismissed = true;
+        hint?.classList.remove("visible");
+    };
+
+    const canvas = renderer.domElement;
+    canvas.addEventListener("pointerdown", () => {
+        canvas.classList.add("grabbing");
+        dismissHint();
+    });
+    const releaseGrab = () => canvas.classList.remove("grabbing");
+    canvas.addEventListener("pointerup", releaseGrab);
+    canvas.addEventListener("pointerleave", releaseGrab);
+
     splat.initialized
         .then(() => {
             document.getElementById("loadingIndicator")?.classList.add("hidden");
+            hint?.classList.add("visible");
+            // Auto-hide after a while even if the visitor never touches it.
+            setTimeout(dismissHint, 6000);
         })
         .catch((err) => {
             console.error("Failed to load splat scene:", err);
