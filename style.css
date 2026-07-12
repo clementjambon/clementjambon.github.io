@@ -101,6 +101,18 @@
     white-space: nowrap;
 }
 
+@media screen and (max-width: 769px) {
+    .news-list li {
+        flex-direction: column;
+        gap: 0.15em;
+        padding: 0.7em 0;
+    }
+
+    .news-date {
+        flex: 0 0 auto;
+    }
+}
+
 .news-more {
     margin-top: 0.3em;
 }
