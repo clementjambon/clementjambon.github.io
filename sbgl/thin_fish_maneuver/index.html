@@ -1,0 +1,1215 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gated Slalom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap">
+<style>
+  /* One committed light world: a white tank, lit from above. Every colour is
+     painted explicitly so the page holds whatever ground the host puts behind it. */
+  :root {
+    --ground:   #FFFFFF;   /* Polyscope's own background is white too */
+    --deep:     #33414B;   /* what shading mixes toward -- never the background */
+    /* The two panel hues are Polyscope's first two structure colours, taken from
+       the installed 2.6.1 rather than eyeballed.  The hull stays neutral: the third
+       in that cycle is magenta, which is a poor read for a body in a paper figure. */
+    --actuated: #E39C1C;
+    --passive:  #1C63E3;
+    --hull:     #5A666E;
+    --edge:     #1A2126;   /* Polyscope draws mesh edges black; this is nearly that */
+    --gate:     #AFB8BE;
+    /* One accent, spelled out three times: the JS reads these tokens through a
+       canvas fillStyle, which cannot resolve a var(), so they must be literal. */
+    --accent:   #14818B;
+    --target:   #14818B;
+    --trail:    #14818B;
+    --hairline: #DCE1E4;
+
+    /* How far off the bottom of the window anything standing on the floor stands.
+       `env()` is what keeps it above a phone's home indicator. */
+    --floor: calc(clamp(18px, 3.5vh, 34px) + env(safe-area-inset-bottom, 0px));
+    /* The notch, in the directions anything is pinned to a corner. */
+    --gutter-l: env(safe-area-inset-left, 0px);
+    --gutter-r: env(safe-area-inset-right, 0px);
+    --gutter-t: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; height: 100dvh; }
+  body {
+    margin: 0; background: var(--ground); color: var(--deep);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    overflow: hidden; overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
+  }
+  #stage { position: fixed; inset: 0; display: block; cursor: grab; touch-action: none; }
+  #stage.dragging { cursor: grabbing; }
+
+  /* The only control: a hairline, an elapsed line inside it, no knob.  The hit
+     area is finger-sized; only the 3px line inside it is visible. */
+  .scrub {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    width: min(360px, 56vw);
+    bottom: var(--floor);
+    height: 16px;
+    display: flex; align-items: center; cursor: ew-resize; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+  }
+  .scrub::before {
+    content: ""; position: absolute; left: 0; right: 0;
+    height: 3px; border-radius: 999px; background: var(--hairline);
+  }
+  #elapsed {
+    position: absolute; left: 0; height: 3px; border-radius: 999px; background: var(--accent);
+  }
+  .scrub:focus-visible { outline: none; }
+  .scrub:focus-visible::before { box-shadow: 0 0 0 3px rgba(20, 129, 139, 0.28); }
+
+  /* Coarse pointers get a taller target and more of the width; the line stays 3px. */
+  @media (pointer: coarse), (max-width: 640px) {
+    .scrub { width: min(420px, 78vw); height: 30px; }
+  }
+
+  /* Shown only if the data never arrives -- the one piece of text on the page. */
+  #trouble {
+    position: fixed; inset: 0; display: none; place-content: center; text-align: center;
+    padding: 24px; font-size: 14px; line-height: 1.6; color: var(--deep);
+  }
+  /* The studio panel.  None of this is in the page unless ?studio asked for it. */
+  .panel {
+    position: fixed; right: calc(12px + var(--gutter-r)); z-index: 5;
+    width: min(232px, calc(100vw - 24px - var(--gutter-l) - var(--gutter-r)));
+    background: rgba(255, 255, 255, 0.94); border: 1px solid var(--hairline);
+    border-radius: 8px; padding: 8px 10px 10px; font-size: 11px; line-height: 1.5;
+    box-shadow: 0 2px 14px rgba(38, 48, 57, 0.10);
+    max-height: calc(50dvh - 18px); overflow-y: auto;
+    /* Scrolling a panel must not drag the page behind it, and tapping a control in
+       one must not be read as a double-tap on the page. */
+    overscroll-behavior: contain; touch-action: pan-y;
+  }
+  #look { top: calc(12px + var(--gutter-t)); }
+  #film { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  #time { top: calc(12px + var(--gutter-t)); left: calc(12px + var(--gutter-l));
+          right: auto; }
+  /* a group heading: quieter than the panel's own, and it folds its rows away */
+  .panel h3 {
+    margin: 9px 0 3px; padding-top: 7px; border-top: 1px solid var(--hairline);
+    font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #9AA5AC; cursor: pointer; user-select: none;
+  }
+  .panel h3:hover { color: var(--deep); }
+  .panel h3::after {
+    content: ""; float: right; width: 5px; height: 5px; margin-top: 3px;
+    border-right: 1px solid currentColor; border-bottom: 1px solid currentColor;
+    transform: rotate(45deg);
+  }
+  .panel h3 + div.shut { display: none; }
+  .panel label.mode { display: block; margin: 0 0 2px; }
+  .panel h2 {
+    margin: 0 0 6px; font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #7A868E; cursor: pointer; user-select: none;
+    display: flex; justify-content: space-between;
+  }
+  .panel.shut > :not(h2) { display: none; }
+  .panel label { display: grid; grid-template-columns: 74px 1fr 34px; align-items: center;
+                gap: 6px; margin: 2px 0; }
+  .panel label > span:last-child { text-align: right; font-variant-numeric: tabular-nums;
+                                  color: #7A868E; }
+  .panel input[type=range] { width: 100%; accent-color: var(--accent); }
+  .panel input[type=checkbox] { justify-self: start; margin: 0;
+                                accent-color: var(--accent); cursor: pointer; }
+  .panel input[type=color] { width: 100%; height: 17px; padding: 0; border: none;
+                            background: none; cursor: pointer; }
+  /* a pose row: the slider takes the width, the cycle and the remove sit at the end */
+  .panel label.stamp { grid-template-columns: 1fr 34px 16px; gap: 5px; }
+  .panel button.kill {
+    flex: none; padding: 0; width: 16px; height: 16px; line-height: 1;
+    font-size: 12px; color: #7A868E; background: none; border: none; border-radius: 3px;
+  }
+  .panel button.kill:hover { background: #EDF1F2; color: var(--deep); }
+  .panel hr { border: none; border-top: 1px solid var(--hairline); margin: 7px 0 5px; }
+  .panel .row { display: flex; gap: 6px; margin-top: 8px; }
+  .panel button {
+    flex: 1; font: inherit; font-family: inherit; padding: 4px 0; cursor: pointer;
+    touch-action: manipulation;
+    color: var(--deep); background: #F3F6F7; border: 1px solid var(--hairline);
+    border-radius: 5px;
+  }
+  .panel button:hover:not(:disabled) { background: #E9EEF0; }
+  .panel button:disabled { opacity: 0.55; cursor: default; }
+  .panel select {
+    width: 100%; font: inherit; font-family: inherit; color: var(--deep);
+    background: #F3F6F7; border: 1px solid var(--hairline); border-radius: 5px;
+    padding: 2px 4px;
+  }
+  .panel .note {
+    margin: 7px 0 0; padding-top: 6px; border-top: 1px solid var(--hairline);
+    color: #7A868E; font-variant-numeric: tabular-nums;
+  }
+  .panel textarea {
+    width: 100%; height: 116px; margin-top: 7px; font-size: 10px; line-height: 1.45;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    border: 1px solid var(--hairline); border-radius: 5px; padding: 5px; resize: vertical;
+  }
+  #trouble code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #F1F4F5; border-radius: 4px; padding: 2px 6px;
+  }
+</style>
+
+<canvas id="stage"></canvas>
+<div class="scrub" id="track" role="slider" tabindex="0" aria-label="Position in the swim"
+     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="elapsed"></div></div>
+<div id="trouble"></div>
+
+<script>
+/* ---- the look -----------------------------------------------------------------
+   Edit these; they are the page's defaults and nothing generates them.  Opening the
+   page as `viewer.html?studio` puts a panel on top that drives every one of them
+   live, colours included, and hands the edited block back to paste in here.  The URL
+   only opens that panel -- it carries no settings of its own. */
+const LOOK = {
+  fps:          96,    /* frames of swim per second of wall clock */
+
+  /* the body */
+  shade:        0.34,  /* how far an unlit face falls toward --deep */
+  lift:         0.28,  /* how far a fully lit face rises toward white -- Polyscope's
+                          clay material lightens as well as darkens, and shading that
+                          only ever darkens is what made this read as flat plastic */
+  outline:      1.0,   /* width of a panel's outline */
+  outlineTone:  0.45,  /* how far that outline moves from the face toward --edge */
+
+  /* the course */
+  /* How thick an obstacle ring is, edge to edge, in WORLD units -- a gate's radius
+     is about 1 -- so the ring keeps its size against the course when you zoom, the
+     way a real hoop would.  The outline stays in pixels: it is ink drawn over the
+     picture, not a part of the scene, and ink does not get thicker up close. */
+  ring:         0.09,
+  ringOutline:  1.1,   /* outline width in pixels, per side */
+  trail:        1.3,   /* width of the path left behind */
+  targetRing:   1.3,   /* width of the target ring, which is not an obstacle */
+
+  /* the scene around them */
+  shadow:       0.12,  /* opacity of the contact shadow under the body */
+  haze:         0.26,  /* how far the far end of the course fades out */
+  /* In static mode, how far the earliest pose washes toward the ground; the poses
+     between are spaced along it.  0 means no fade at all -- every pose drawn alike. */
+  fade:         0.55,
+  /* Whether the dashed ring around where the fish was asked to finish is drawn at
+     all.  It is the objective, not the course, so a figure about the swim itself may
+     not want it.  `target` above stays the width it is drawn at when it is shown. */
+  showTarget:   true,
+};
+
+/* The look panel as groups, not one long list.  Each group is a thing you might be
+   trying to change -- the body, the gates, the path -- and its colour sits with its
+   numbers, because "how wide is the ring" and "what colour is the ring" are one
+   question asked twice and used to be three inches apart.
+
+   `accent` is a single swatch on purpose: the trajectory, the target ring and the
+   elapsed bar are meant to be one colour, so the panel is not given a way to split
+   them.  That is why `path` holds the target ring's width -- it is drawn in the
+   path's colour, and putting it under `gates` would imply its own. */
+const PLAY_SLIDERS = [["fps", "playback", 8, 320, 1]];
+
+const GROUPS = [
+  { title: "body",
+    sliders: [["shade", "shade", 0, 1, 0.01], ["lift", "lift", 0, 1, 0.01],
+              ["outline", "outline", 0, 4, 0.1],
+              ["outlineTone", "outline tone", 0, 1, 0.01]],
+    swatches: [["actuated", "actuated"], ["passive", "passive"], ["hull", "hull"],
+               ["edge", "outline"]] },
+
+  { title: "gates",
+    sliders: [["ring", "thickness", 0, 0.4, 0.005],
+              ["ringOutline", "outline", 0, 4, 0.1]],
+    swatches: [["gate", "rings"]] },
+
+  { title: "path",
+    sliders: [["trail", "trail", 0.4, 8, 0.1],
+              ["targetRing", "target ring", 0.4, 8, 0.1]],
+    toggles: [["showTarget", "show target"]],
+    swatches: [["accent", "trajectory"]] },
+
+  { title: "scene",
+    sliders: [["shadow", "shadow", 0, 0.5, 0.01], ["haze", "haze", 0, 0.8, 0.01]],
+    swatches: [["deep", "shade tint"]] },
+];
+
+/* every LOOK key the panels drive, in the order they show them */
+const LOOK_KEYS = () => PLAY_SLIDERS
+  .concat(GROUPS.flatMap(g => (g.sliders || []).concat(g.toggles || [])), POSE_SLIDERS);
+
+/* What `record` produces.  Not part of LOOK: none of it is visible on screen. */
+const FILM = {
+  /* Video pixels per CSS pixel.  This REPLACES the display's own pixel ratio rather
+     than multiplying it, so 1 is the window's size in CSS pixels -- on a retina screen
+     that is half what the canvas draws at normally.  Raise it for a denser film; the
+     panel prints the exact size before you record. */
+  scale:  1,
+  mbps:   80,       /* encoder bitrate; a flat white scene will not use all of it */
+  fps:    60,       /* frames a second in the file; the swim's own speed is LOOK.fps */
+  format: "auto",   /* "auto" takes mp4 where it can, else webm; or force either */
+};
+
+const FILM_SLIDERS = [
+  ["scale", "export scale", 1, 6, 0.5], ["mbps", "bitrate Mbps", 4, 160, 4],
+  ["fps", "film fps", 12, 60, 1],
+];
+/* Only ever does anything in static mode, so it lives in that panel -- but it is a
+   LOOK key like the rest and is copied back with them.  At 0 the poses are all drawn
+   alike and the fade is gone; there is no residue left at the bottom of the range. */
+const POSE_SLIDERS = [["fade", "pose fade", 0, 0.9, 0.05]];
+const SWATCHES = GROUPS.flatMap(g => g.swatches || []);
+
+/* ---- where the swim comes from ------------------------------------------------
+   A run is one file written by export_viewer_data.py: JSON with an assignment in
+   front of it, loaded through a plain <script> tag rather than fetch().  That is the
+   whole reason for the `window.__DATA__ =` prefix -- a classic script tag loads from
+   a file:// page, where fetch() is refused as a cross-origin request.  So this page
+   opens by double-clicking it, with no server and no second, bundled copy of itself.
+   `?run=trailing` picks a different swim. */
+const QUERY = new URLSearchParams(location.search);
+const RUN = QUERY.get("run") || "whipping";
+const STUDIO = QUERY.has("studio");
+/* one accent drives three tokens, so nothing can set them apart by accident */
+function tokensOf(key) { return key === "accent" ? ["accent", "target", "trail"] : [key]; }
+
+let DATA, NF, NV, QUADS, ROLES, VERTS, PATH, CURVES, FLOOR, CEIL, CORNERS;
+
+function trouble(why) {
+  const box = document.getElementById("trouble");
+  box.style.display = "grid";
+  box.innerHTML = "This page reads its swim from <code>data/" + RUN + ".js</code>, which "
+    + "the browser would not load (" + why + ").<br>Run "
+    + "<code>python export_viewer_data.py</code> beside this file.";
+}
+
+(function load() {
+  const tag = document.createElement("script");
+  tag.src = "data/" + RUN + ".js";
+  tag.onload = () => window.__DATA__ ? start(window.__DATA__) : trouble("no data in it");
+  tag.onerror = () => trouble("not found");
+  document.head.appendChild(tag);
+})();
+
+/* ---- decode: uint16 over one shared box, little-endian ---- */
+function unpack(b64, n) {
+  const bin = atob(b64), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const u = new Uint16Array(bytes.buffer);
+  const out = new Float32Array(n * 3), s = DATA.scale / 65535;
+  for (let i = 0; i < n; i++) {
+    out[3*i]     = DATA.lo[0] + u[3*i]     * s;
+    out[3*i + 1] = DATA.lo[1] + u[3*i + 1] * s;
+    out[3*i + 2] = DATA.lo[2] + u[3*i + 2] * s;
+  }
+  return out;
+}
+
+function start(d) {
+  DATA = d;
+  NF = DATA.n; NV = DATA.v; QUADS = DATA.quads; ROLES = DATA.roles;
+  VERTS = unpack(DATA.verts, NF * NV);
+  PATH = unpack(DATA.path, NF);
+  CURVES = Object.entries(DATA.curves).map(([name, b]) => {
+    const n = atob(b).length / 6;
+    return { name, pts: unpack(b, n), n, target: name === "target" };
+  });
+  FLOOR = DATA.lo[2] - 0.12;
+  CEIL = DATA.hi[2];
+  CORNERS = [];
+  for (const x of [DATA.lo[0], DATA.hi[0]]) for (const y of [DATA.lo[1], DATA.hi[1]])
+    for (const z of [FLOOR, DATA.hi[2]]) CORNERS.push([x, y, z]);
+  P = new Float32Array(NV * 3);
+  resize();
+  if (!running) { running = true; requestAnimationFrame(tick); }
+}
+
+/* ---- palette, read once from the tokens ---- */
+function rgbOf(token) {
+  const probe = document.createElement("canvas").getContext("2d");
+  probe.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  const hex = probe.fillStyle;
+  if (hex.startsWith("#")) {
+    return hex.length === 4 ? [...hex.slice(1)].map(c => parseInt(c + c, 16))
+                            : [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  }
+  const m = hex.match(/[\d.]+/g).map(Number);
+  return [m[0], m[1], m[2]];
+}
+const PAL = {};
+for (const t of ["ground", "deep", "hull", "actuated", "passive", "edge", "gate", "target", "trail"]) {
+  PAL[t] = rgbOf("--" + t);
+}
+const mix = (a, b, t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+const css = c => "rgb(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + ")";
+
+/* ---- camera: yaw about the vertical, tilt down, orthographic ---- */
+const RAD = Math.PI / 180;
+const HOME_YAW = 24 * RAD, HOME_PITCH = 26 * RAD;
+let yaw = HOME_YAW, pitch = HOME_PITCH, zoom = 1, orbited = false;
+let cy, sy, cp, sp;
+function basis() { cy = Math.cos(yaw); sy = Math.sin(yaw); cp = Math.cos(pitch); sp = Math.sin(pitch); }
+const tmp = [0, 0, 0];
+function project(x, y, z, out) {
+  const a = x * cy - y * sy, b = x * sy + y * cy;
+  out[0] = a;
+  out[1] = z * cp + b * sp;
+  out[2] = b * cp - z * sp;
+}
+
+/* A light that travels downward, used for both the shading and the shadow. */
+const LIGHT = (() => { const l = [-0.34, -0.42, -1.0], n = Math.hypot(l[0], l[1], l[2]);
+                       return l.map(c => c / n); })();
+
+let W = 0, H = 0, SCALE = 1, OX = 0, OY = 0, MID_U = 0, MID_V = 0, MIN_D = 0, SPAN_D = 1;
+let BASE = 1;   /* the scale the framing chose; orbiting must not touch it */
+
+/* Fit the eight corners of the world box -- correct under any camera, and cheap. */
+function extent() {
+  let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity,
+      minD = Infinity, maxD = -Infinity;
+  for (const c of CORNERS) {
+    project(c[0], c[1], c[2], tmp);
+    minU = Math.min(minU, tmp[0]); maxU = Math.max(maxU, tmp[0]);
+    minV = Math.min(minV, tmp[1]); maxV = Math.max(maxV, tmp[1]);
+    minD = Math.min(minD, tmp[2]); maxD = Math.max(maxD, tmp[2]);
+  }
+  return { minU, maxU, minV, maxV, minD, maxD };
+}
+/* Margin left around the picture, top-and-bottom and left-and-right.  A share of the
+   window rather than a fixed number of pixels, so a big window gets a big margin --
+   but a phone held upright is 844 tall and 11% of that is 93px at each end, which is
+   a fifth of the window given away in the one direction it has none to spare.  A
+   narrow window therefore keeps the proportional rule across the width and takes a
+   thinner band top and bottom; the bottom band still clears the scrub bar, which sits
+   about 64px up at its tallest. */
+function pads() {
+  const y = W < 640 ? Math.max(34, H * 0.07) : Math.max(H < 640 ? 34 : 64, H * 0.11);
+  return [Math.max(W < 640 ? 14 : 48, W * 0.06), y];
+}
+/* Choose a scale for the course as it is turned right now.  Only the framing does
+   this -- opening the page, resizing the window, going home. */
+function fit() {
+  const e = extent(), [padX, padY] = pads();
+  BASE = Math.min((W - 2*padX) / (e.maxU - e.minU || 1),
+                  (H - 2*padY) / (e.maxV - e.minV || 1));
+  aim(e);
+}
+
+/* Re-centre without re-fitting.  Orbiting used to run the whole of fit(), and a box
+   turning in front of an orthographic camera has projected extents that change as it
+   goes -- so the scene swelled and shrank under the cursor instead of simply
+   rotating, which is what made the camera feel wrong.  The centre and the depth
+   range do have to follow the turn, so those are still recomputed; the scale is not. */
+function aim(known) {
+  const e = known || extent();
+  MID_U = (e.minU + e.maxU) / 2; MID_V = (e.minV + e.maxV) / 2;
+  MIN_D = e.minD; SPAN_D = (e.maxD - e.minD) || 1;
+  SCALE = zoom * BASE;
+  OX = W / 2; OY = H / 2 - Math.max(10, H * 0.02);
+}
+
+/* The course is long and thin.  On a landscape screen the stock three-quarter view
+   fits it; on a portrait one it wastes most of the height, so swing the yaw until the
+   course runs down the diagonal instead of off both edges.  Biggest-fit alone picks
+   90 degrees -- looking straight along the course, where the gates land in a tangent
+   pile -- so the search takes the largest fit that still keeps the rings apart. */
+function gatesOnScreen() {
+  const out = [];
+  for (const c of CURVES) {
+    if (c.target) continue;
+    let x = 0, y = 0; const pts = [];
+    for (let k = 0; k < c.n; k++) {
+      project(c.pts[3*k], c.pts[3*k+1], c.pts[3*k+2], tmp);
+      const u = sx(tmp[0]), v = sv(tmp[1]);
+      pts.push(u, v); x += u; y += v;
+    }
+    x /= c.n; y /= c.n;
+    let r = 0;
+    for (let k = 0; k < pts.length; k += 2) r += Math.hypot(pts[k] - x, pts[k+1] - y);
+    out.push({ x, y, r: r / c.n });
+  }
+  return out;
+}
+function gatesDistinct() {
+  const g = gatesOnScreen();
+  for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++)
+    if (Math.hypot(g[i].x - g[j].x, g[i].y - g[j].y) < 1.1 * (g[i].r + g[j].r)) return false;
+  return true;
+}
+function homeYaw() {
+  if (H <= W * 1.05) return HOME_YAW;
+  const keep = yaw;
+  let best = HOME_YAW, bestScale = -1, loose = HOME_YAW, looseScale = -1;
+  for (let deg = 0; deg < 180; deg += 2) {
+    yaw = deg * RAD; basis(); fit();
+    if (SCALE > looseScale) { looseScale = SCALE; loose = yaw; }
+    if (SCALE > bestScale && gatesDistinct()) { bestScale = SCALE; best = yaw; }
+  }
+  yaw = keep; basis(); fit();
+  return bestScale > 0 ? best : loose;   /* nothing separates them: take the big view */
+}
+
+const sx = u => OX + (u - MID_U) * SCALE;
+const sv = v => OY - (v - MID_V) * SCALE;
+
+const canvas = document.getElementById("stage");
+/* `alpha: false` and a painted ground, not clearRect.  The page looked right either
+   way, because the white behind a transparent canvas was the body's -- but a stream
+   captured off the canvas takes the canvas alone, and a near-empty alpha channel is
+   what encodes to a file of almost no size and plays back black. */
+const ctx = canvas.getContext("2d", { alpha: false });
+let captureScale = 0;      /* 0 = follow the display; >0 while recording */
+function resize() {
+  const dpr = captureScale || Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  basis();
+  if (!orbited) { yaw = homeYaw(); pitch = HOME_PITCH; basis(); }
+  fit(); draw(frame);
+}
+
+/* ---- one frame, or several at once ----------------------------------------------
+   Playback draws the pose at the scrub position.  Static draws every stamped pose
+   into the same picture -- a strobe of the swim -- over one trail and one set of
+   rings.  Everything below is shared: the only difference between the two modes is
+   which frames end up in `poses`, so a still cannot drift from what playback shows. */
+let MODE = "playback";           /* or "static" */
+let STAMPS = [];                 /* frames the strobe holds, in static mode */
+let P;
+
+const clampFrame = f => Math.max(0, Math.min(NF - 1, Math.round(f)));
+function poses(f) {
+  if (MODE !== "static") return [clampFrame(f)];
+  return STAMPS.map(clampFrame).sort((a, b) => a - b);
+}
+/* Spread n stamps over the swim -- what static mode opens with, so it shows
+   something the moment it is switched on rather than an empty course. */
+function seedStamps(n) {
+  STAMPS = Array.from({ length: n }, (_, k) => Math.round(k * (NF - 1) / (n - 1)));
+}
+
+function draw(f) {
+  if (!DATA) return;
+  const shown = poses(f);
+  if (!shown.length) shown.push(clampFrame(f));
+  const strobe = shown.length > 1;
+  ctx.fillStyle = css(PAL.ground); ctx.fillRect(0, 0, W, H);
+
+  /* Shadows first: the floor is under everything, so they occlude nothing.  Every
+     panel of every pose goes into ONE path filled ONE time.  A fill per panel would
+     let the hull, the tail and the pectorals each lay down their own wash, and the
+     silhouette would darken wherever two of them crossed -- which is a drawing
+     artefact, not something a light does, and with several poses it would also brand
+     every place two poses overlap.  Filling a compound path composites once, so the
+     union comes out flat.  The catch is the nonzero winding rule: two subpaths that
+     wind opposite ways cancel where they overlap and the crossing would punch through
+     as a hole, so each quad is wound the same way before it is added. */
+  ctx.beginPath();
+  let rise = 0;
+  const foot = new Float64Array(8);
+  for (const i of shown) {
+    const base = i * NV * 3;
+    for (let t = 0; t < QUADS.length; t++) {
+      const qd = QUADS[t];
+      for (let j = 0; j < 4; j++) {
+        const v = qd[j], z = VERTS[base + 3*v + 2];
+        const sh = (FLOOR - z) / LIGHT[2];
+        rise += z - FLOOR;
+        project(VERTS[base + 3*v] + sh * LIGHT[0], VERTS[base + 3*v + 1] + sh * LIGHT[1],
+                FLOOR, tmp);
+        foot[2*j] = sx(tmp[0]); foot[2*j + 1] = sv(tmp[1]);
+      }
+      let twice = 0;
+      for (let j = 0; j < 4; j++) {
+        const k = (j + 1) % 4;
+        twice += foot[2*j] * foot[2*k + 1] - foot[2*k] * foot[2*j + 1];
+      }
+      for (let n = 0; n < 4; n++) {
+        const j = twice < 0 ? 3 - n : n;        /* one winding for every quad */
+        n ? ctx.lineTo(foot[2*j], foot[2*j + 1]) : ctx.moveTo(foot[2*j], foot[2*j + 1]);
+      }
+      ctx.closePath();
+    }
+  }
+  /* one opacity for the whole silhouette, off how high the body sits over the floor */
+  const lift = Math.min(1, Math.max(0, (rise / (4 * QUADS.length * shown.length))
+                                      / Math.max(CEIL - FLOOR, 1e-6)));
+  ctx.fillStyle = "rgba(38, 48, 57, " + (LOOK.shadow * (1 - 0.62 * lift)).toFixed(3) + ")";
+  ctx.fill();
+
+  /* The trail it has left behind, ageing from the ground toward the accent.  A strobe
+     is a picture of the whole swim, so it carries the whole path, not a prefix. */
+  const upto = MODE === "static" ? NF - 1 : shown[shown.length - 1];
+  ctx.lineWidth = LOOK.trail; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const STEP = 3;
+  for (let k = STEP; k <= upto; k += STEP) {
+    project(PATH[3*(k-STEP)], PATH[3*(k-STEP)+1], PATH[3*(k-STEP)+2], tmp);
+    const x0 = sx(tmp[0]), y0 = sv(tmp[1]);
+    project(PATH[3*k], PATH[3*k+1], PATH[3*k+2], tmp);
+    ctx.strokeStyle = css(mix(PAL.ground, PAL.trail, 0.14 + 0.7 * (k / Math.max(upto, 1))));
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(sx(tmp[0]), sv(tmp[1])); ctx.stroke();
+  }
+
+  /* The course and the bodies, painter-sorted together so an aperture can occlude a
+     fin -- and so that one pose can pass in front of another.  A ring goes in one
+     segment at a time, not as a whole: the fish swims *through* these, so the near
+     half and the far half of the same circle need opposite answers, and a single
+     average depth can only give one. */
+  const items = [];
+  for (const c of CURVES) {
+    if (c.target && !LOOK.showTarget) continue;
+    /* The target is a dashed hairline and goes in a segment at a time: it has no
+       width for a seam to show in, and the dash hides the joins anyway. */
+    if (c.target) {
+      let cum = 0;
+      project(c.pts[0], c.pts[1], c.pts[2], tmp);
+      let x0 = sx(tmp[0]), y0 = sv(tmp[1]), d0 = tmp[2];
+      for (let k = 1; k < c.n; k++) {
+        project(c.pts[3*k], c.pts[3*k+1], c.pts[3*k+2], tmp);
+        const x1 = sx(tmp[0]), y1 = sv(tmp[1]), d1 = tmp[2];
+        items.push({ depth: (d0 + d1) / 2, ring: true, target: true,
+                     pts: [x0, y0, x1, y1], dash: cum, fade: 0 });
+        cum += Math.hypot(x1 - x0, y1 - y0);
+        x0 = x1; y0 = y1; d0 = d1;
+      }
+      continue;
+    }
+
+    /* An obstacle ring goes in as TWO arcs, not sixty segments.  Sixty would each be
+       stroked separately, and two separately antialiased strokes meeting along an edge
+       do not add up to full coverage -- the joins show as a light tick, and with an
+       outline down both sides the ring comes out looking like a gear.  One stroke per
+       arc has no interior joins at all.
+
+       Two is also all the depth resolution a ring needs.  Under this projection its
+       depth runs around it like a sine, so the segments nearer than its centre form
+       one contiguous arc and those further form the other; the fish passing through
+       sits between them, and the painter's sort puts it there. */
+    let n = c.n;
+    if (Math.hypot(c.pts[0] - c.pts[3*(n-1)], c.pts[1] - c.pts[3*(n-1)+1],
+                   c.pts[2] - c.pts[3*(n-1)+2]) < 1e-9) n -= 1;
+    const px = [], py = [], pd = [];
+    let mean = 0;
+    for (let k = 0; k < n; k++) {
+      project(c.pts[3*k], c.pts[3*k+1], c.pts[3*k+2], tmp);
+      px.push(sx(tmp[0])); py.push(sv(tmp[1])); pd.push(tmp[2]); mean += tmp[2];
+    }
+    mean /= n;
+    const near = k => pd[k] < mean;
+
+    const bounds = [];
+    for (let k = 0; k < n; k++) if (near(k) !== near((k - 1 + n) % n)) bounds.push(k);
+    if (!bounds.length) bounds.push(0);            /* edge-on: it never crosses */
+
+    for (let b = 0; b < bounds.length; b++) {
+      const from = bounds[b], to = bounds[(b + 1) % bounds.length];
+      const len = ((to - from) % n + n) % n || n;
+      /* Run one point past each end.  The arcs abut at a bend, and a butt cap is
+         square to its own last segment, so two of them meeting across a turn leave a
+         wedge of background showing.  Overlapping by a segment covers it, and the
+         only cost is the nearer arc's outline running a segment onto the further one,
+         which is what an outline crossing in front of something looks like anyway. */
+      const run = [];
+      let depth = 0;
+      for (let i = -1; i <= len + 1; i++) {
+        const k = ((from + i) % n + n) % n;
+        run.push(px[k], py[k]);
+        if (i >= 0 && i <= len) depth += pd[k];
+      }
+      items.push({ depth: depth / (len + 1), ring: true, target: false, pts: run, fade: 0 });
+    }
+  }
+  for (let n = 0; n < shown.length; n++) {
+    const i = shown[n], base = i * NV * 3;
+    /* earlier poses sit further back in the telling, so they wash out further */
+    const fade = strobe ? LOOK.fade * (1 - n / (shown.length - 1)) : 0;
+    for (let k = 0; k < NV; k++) {
+      project(VERTS[base + 3*k], VERTS[base + 3*k + 1], VERTS[base + 3*k + 2], tmp);
+      P[3*k] = tmp[0]; P[3*k + 1] = tmp[1]; P[3*k + 2] = tmp[2];
+    }
+    for (let t = 0; t < QUADS.length; t++) {
+      const qd = QUADS[t], pts = []; let d = 0;
+      for (let j = 0; j < 4; j++) { const v = qd[j];
+        pts.push(sx(P[3*v]), sv(P[3*v + 1])); d += P[3*v + 2]; }
+      const a = qd[0], b = qd[1], c = qd[3];
+      const ux = VERTS[base+3*b] - VERTS[base+3*a], uy = VERTS[base+3*b+1] - VERTS[base+3*a+1],
+            uz = VERTS[base+3*b+2] - VERTS[base+3*a+2];
+      const wx = VERTS[base+3*c] - VERTS[base+3*a], wy = VERTS[base+3*c+1] - VERTS[base+3*a+1],
+            wz = VERTS[base+3*c+2] - VERTS[base+3*a+2];
+      const nx = uy*wz - uz*wy, ny = uz*wx - ux*wz, nz = ux*wy - uy*wx;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      const lambert = Math.abs((nx*LIGHT[0] + ny*LIGHT[1] + nz*LIGHT[2]) / len);
+      items.push({ depth: d / 4, ring: false, pts, role: ROLES[t], lambert, fade });
+    }
+  }
+  items.sort((p, q) => q.depth - p.depth);
+
+  for (const it of items) {
+    const haze = Math.min(1, Math.max(0, (it.depth - MIN_D) / SPAN_D)) * LOOK.haze;
+    /* distance and age both wash toward the ground, so they compose rather than add */
+    const wash = 1 - (1 - haze) * (1 - it.fade);
+    ctx.beginPath(); ctx.moveTo(it.pts[0], it.pts[1]);
+    for (let k = 2; k < it.pts.length; k += 2) ctx.lineTo(it.pts[k], it.pts[k+1]);
+    if (it.ring && it.target) {
+      ctx.strokeStyle = css(mix(PAL.target, PAL.ground, wash));
+      ctx.lineWidth = LOOK.targetRing;
+      /* the dash pattern is continued along the ring, not restarted per segment */
+      ctx.setLineDash([3, 4]); ctx.lineDashOffset = -it.dash;
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    } else if (it.ring) {
+      /* An obstacle ring is a flat band, not a lit object: an outline down both long
+         edges and one uniform grey between them, so it reads as a cut-out silhouette
+         with no shading to suggest a direction the light is coming from.  Two strokes
+         of the same path, the narrower over the wider, is the whole of it.
+
+         Butt caps, not round: a round cap runs half the width past the end of its
+         segment, and since the segments are painted one at a time in depth order the
+         next one's outline would stamp over the previous one's fill at every joint. */
+      const cap = ctx.lineCap;
+      ctx.lineCap = "butt";
+      /* SCALE is pixels per world unit, so this is the one place the ring's thickness
+         becomes a number of pixels.  The outline is capped at a share of the band so
+         that a ring seen small stays a grey band with edges rather than turning into
+         a solid dark line. */
+      const band = LOOK.ring * SCALE;
+      const ink = Math.min(LOOK.ringOutline, 0.4 * band);
+      ctx.strokeStyle = css(mix(PAL.edge, PAL.ground, wash));
+      ctx.lineWidth = band;
+      ctx.stroke();
+      ctx.strokeStyle = css(mix(PAL.gate, PAL.ground, wash));
+      ctx.lineWidth = Math.max(0.3, band - 2 * ink);
+      ctx.stroke();
+      ctx.lineCap = cap;
+    } else {
+      ctx.closePath();
+      const hue = it.role === "actuated" ? PAL.actuated : it.role === "passive" ? PAL.passive : PAL.hull;
+      /* shading mixes toward the dark tint, never toward the white ground */
+      const dark = mix(PAL.deep, hue, 1 - LOOK.shade), pale = mix(hue, PAL.ground, LOOK.lift);
+      const lit = mix(mix(dark, pale, it.lambert), PAL.ground, wash);
+      ctx.fillStyle = css(lit); ctx.fill();
+      ctx.strokeStyle = css(mix(lit, PAL.edge, LOOK.outlineTone)); ctx.lineWidth = LOOK.outline;
+      ctx.stroke();
+    }
+  }
+
+  const at = clampFrame(f), pct = at / (NF - 1);
+  elapsed.style.width = (pct * 100) + "%";
+  track.setAttribute("aria-valuenow", Math.round(pct * 100));
+  track.setAttribute("aria-valuetext", "cycle " + (at / DATA.per_cycle).toFixed(1));
+}
+
+/* ---- playback and controls ---- */
+const track = document.getElementById("track"), elapsed = document.getElementById("elapsed");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let frame = 0, playing = !REDUCED, last = 0, running = false;
+function tick(now) {
+  if (playing && MODE !== "static") {
+    const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
+    frame = (frame + dt * LOOK.fps) % NF;
+    draw(frame);
+  }
+  last = now;
+  requestAnimationFrame(tick);
+}
+
+let scrubbing = false;
+function seek(e) {
+  const r = track.getBoundingClientRect();
+  frame = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (NF - 1);
+  draw(frame);
+}
+track.addEventListener("pointerdown", e => {
+  scrubbing = true; playing = false; track.setPointerCapture(e.pointerId); seek(e); });
+track.addEventListener("pointermove", e => { if (scrubbing) seek(e); });
+track.addEventListener("pointerup", e => {
+  scrubbing = false; track.releasePointerCapture(e.pointerId); });
+track.addEventListener("keydown", e => {
+  const jump = e.shiftKey ? DATA.per_cycle : DATA.per_cycle / 8;
+  if (e.key === "ArrowRight") { playing = false; frame = Math.min(NF - 1, frame + jump); draw(frame); }
+  else if (e.key === "ArrowLeft") { playing = false; frame = Math.max(0, frame - jump); draw(frame); }
+  else if (e.key === " " || e.key === "Enter") { playing = !playing; }
+  else return;
+  e.preventDefault();
+});
+
+/* One pointer orbits, two pinch.  A tap that never travelled toggles playback. */
+const touches = new Map();
+let travelled = 0, pinch = 0;
+function home() { yaw = homeYaw(); pitch = HOME_PITCH; zoom = 1; orbited = false;
+                  basis(); fit(); draw(frame); }
+function spread() {
+  const [a, b] = [...touches.values()];
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+canvas.addEventListener("pointerdown", e => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  travelled = 0; canvas.classList.add("dragging"); canvas.setPointerCapture(e.pointerId);
+  if (touches.size === 2) pinch = spread();
+});
+canvas.addEventListener("pointermove", e => {
+  const prev = touches.get(e.pointerId);
+  if (!prev) return;
+  const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  prev.x = e.clientX; prev.y = e.clientY;
+  travelled += Math.abs(dx) + Math.abs(dy);
+  if (touches.size >= 2) {
+    const now = spread();
+    if (pinch > 0 && now > 0) {
+      zoom = Math.min(6, Math.max(0.45, zoom * (now / pinch)));
+      orbited = true; pinch = now; aim(); draw(frame);
+    }
+    return;
+  }
+  /* A drag across the window is one full turn, and one down it is a quarter turn,
+     whatever the window happens to be -- in pixels the same gesture meant different
+     amounts on different screens. */
+  yaw += dx * (2 * Math.PI / Math.max(W, 1));
+  pitch = Math.min(1.5, Math.max(-0.06, pitch + dy * (Math.PI / Math.max(H, 1))));
+  orbited = true; basis(); aim(); draw(frame);
+});
+function release(e) {
+  if (!touches.delete(e.pointerId)) return;
+  if (touches.size < 2) pinch = 0;
+  if (touches.size === 0) {
+    canvas.classList.remove("dragging");
+    if (travelled < 6 && e.type === "pointerup") playing = !playing;   /* a tap, not a drag */
+  }
+}
+canvas.addEventListener("pointerup", release);
+canvas.addEventListener("pointercancel", release);
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  zoom = Math.min(6, Math.max(0.45, zoom * Math.exp(-e.deltaY * 0.0012)));
+  orbited = true; aim(); draw(frame);
+}, { passive: false });
+canvas.addEventListener("dblclick", home);
+
+/* Double-tap resets too, since a touch screen has no dblclick worth relying on. */
+let lastTap = 0;
+canvas.addEventListener("pointerup", e => {
+  if (e.pointerType === "mouse" || travelled >= 6) return;
+  const now = e.timeStamp;
+  if (now - lastTap < 320) { home(); lastTap = 0; } else lastTap = now;
+});
+
+/* ---- ?studio: drive the look live, then hand back a block to paste into this file --
+   Built here and only here, so a plain visit carries none of this DOM and no panel. */
+const hexToRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const token = k => getComputedStyle(document.documentElement)
+                     .getPropertyValue("--" + k).trim().toLowerCase();
+
+function paintToken(k, hex) {
+  for (const t of tokensOf(k)) document.documentElement.style.setProperty("--" + t, hex);
+  if (k === "accent") PAL.trail = PAL.target = hexToRgb(hex);
+  else PAL[k] = hexToRgb(hex);
+  draw(frame);
+}
+
+/* ---- recording ------------------------------------------------------------------
+   `captureStream(0)` hands back a stream that captures nothing on its own: a frame
+   goes in only when requestFrame() says so.  That is the whole point -- the film then
+   holds exactly the frames chosen here, one each, where letting the browser capture a
+   live canvas records whatever the compositor happened to catch and drops or repeats
+   frames under load.  Emission is still paced in real time, because MediaRecorder
+   timestamps a frame when it arrives, so pushing them as fast as they render would
+   produce a correct but comically fast film.
+
+   Two things the film inherits rather than chooses: its resolution is the canvas
+   backing store, so it is the window size times the device pixel ratio -- resize the
+   window before recording if it matters -- and its framing is whatever the camera is
+   pointed at.  The panel itself is DOM and never appears in it. */
+const RECORDABLE = typeof MediaRecorder !== "undefined" && !!canvas.captureStream;
+/* MP4/H.264 first, where the browser will record it (Safari 16.4+, recent Chrome):
+   it drops into Keynote, LaTeX and a slide with no conversion step.  WebM is the
+   fallback, and `ffmpeg -i in.webm -c:v prores_ks out.mov` converts it. */
+const MP4_TYPES = ["video/mp4;codecs=avc1", "video/mp4"];
+const WEBM_TYPES = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+function pickType() {
+  if (!RECORDABLE) return null;
+  const wanted = FILM.format === "mp4" ? MP4_TYPES
+               : FILM.format === "webm" ? WEBM_TYPES
+               : MP4_TYPES.concat(WEBM_TYPES);
+  return wanted.find(t => MediaRecorder.isTypeSupported(t)) || null;
+}
+const extFor = type => (type.indexOf("mp4") !== -1 ? "mp4" : "webm");
+
+async function record(say) {
+  const type = pickType();
+  if (!type) { say("no encoder"); return; }
+
+  /* The swim can run faster than the film's frame rate, and above 60 faster than a
+     display refreshes.  When it does, the film samples it and steps further through
+     the swim for each frame it keeps; the duration is NF / LOOK.fps either way. */
+  const emit = Math.min(LOOK.fps, FILM.fps), step = LOOK.fps / emit;
+  const shots = Math.ceil(NF / step);
+
+  /* Grow the backing store for the take, so the film is as dense as FILM.scale asks
+     and not as dense as this monitor happens to be.  Everything is drawn in CSS
+     pixels through the context transform, so the picture is identical, just finer. */
+  captureScale = FILM.scale;
+  resize();
+  const canvasSize = canvas.width + "x" + canvas.height;
+
+  /* Ask for a stream that captures only when told.  If this browser has no
+     requestFrame, that stream would capture nothing at all, so fall back to one that
+     samples on its own at the emission rate. */
+  let stream = canvas.captureStream(0);
+  let track = stream.getVideoTracks()[0];
+  let manual = typeof track.requestFrame === "function";
+  if (!manual) {
+    track.stop();
+    stream = canvas.captureStream(emit);
+    track = stream.getVideoTracks()[0];
+  }
+  const rec = new MediaRecorder(stream, { mimeType: type,
+                                          videoBitsPerSecond: FILM.mbps * 1e6 });
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const finished = new Promise(done => { rec.onstop = done; });
+
+  const wasPlaying = playing;
+  playing = false;
+  rec.start();
+  say("0%");
+  let due = performance.now();
+  for (let n = 0; n < shots; n++) {
+    draw(Math.min(NF - 1, n * step));
+    if (manual) track.requestFrame();
+    say(Math.round(100 * n / shots) + "%");
+    due += 1000 / emit;
+    await new Promise(r => setTimeout(r, Math.max(0, due - performance.now())));
+  }
+  rec.stop();
+  await finished;
+  track.stop();
+  captureScale = 0;
+  resize();
+  playing = wasPlaying;
+
+  const blob = new Blob(chunks, { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = RUN + "." + extFor(type);
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  say((blob.size / 1e6).toFixed(1) + " MB");
+  console.log("recorded", shots, "frames,", canvasSize, type,
+              (blob.size / 1e6).toFixed(2), "MB");
+}
+
+/* Two panels, because they are two jobs: `look` is what the swim looks like and ends
+   with a block to paste into this file; `film` is what a recording of it comes out as
+   and ends with a file on disk.  Nothing in one belongs in the other. */
+/* A still of whatever is on the canvas, at FILM.scale, with neither panel in it. */
+function saveImage(say) {
+  return new Promise(resolve => {
+    captureScale = FILM.scale;
+    resize();                       /* redraws at the export size */
+    canvas.toBlob(blob => {
+      captureScale = 0;
+      resize();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = RUN + (MODE === "static" ? "-poses" : "") + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      say((blob.size / 1e6).toFixed(2) + " MB");
+      resolve();
+    }, "image/png");
+  });
+}
+
+function shell(id, title) {
+  const box = document.createElement("div");
+  box.id = id; box.className = "panel";
+  const head = document.createElement("h2");
+  head.innerHTML = "<span>" + title + "</span><span>&minus;</span>";
+  head.onclick = () => box.classList.toggle("shut");
+  box.appendChild(head);
+  return box;
+}
+
+function slider(box, into, [key, name, lo, hi, step], after) {
+  const row = document.createElement("label"), out = document.createElement("span");
+  const input = document.createElement("input");
+  Object.assign(input, { type: "range", min: lo, max: hi, step, value: into[key] });
+  out.textContent = into[key];
+  input.oninput = () => {
+    into[key] = parseFloat(input.value);
+    out.textContent = input.value;
+    draw(frame);
+    if (after) after();
+  };
+  row.append(Object.assign(document.createElement("span"), { textContent: name }), input, out);
+  box.appendChild(row);
+}
+
+function lookPanel() {
+  const box = shell("look", "look");
+  for (const g of GROUPS) {
+    const head = Object.assign(document.createElement("h3"), { textContent: g.title });
+    const rows = document.createElement("div");
+    /* A group folds away on its own, so the panel can be as tall as the thing being
+       worked on rather than as tall as everything it is able to change. */
+    head.onclick = () => rows.classList.toggle("shut");
+    box.append(head, rows);
+
+    for (const spec of g.sliders || []) slider(rows, LOOK, spec);
+
+    for (const [key, name] of g.toggles || []) {
+      const row = document.createElement("label"), input = document.createElement("input");
+      Object.assign(input, { type: "checkbox", checked: LOOK[key] });
+      input.onchange = () => { LOOK[key] = input.checked; draw(frame); };
+      row.append(Object.assign(document.createElement("span"), { textContent: name }),
+                 input, document.createElement("span"));
+      rows.appendChild(row);
+    }
+
+    for (const [key, name] of g.swatches || []) {
+      const row = document.createElement("label"), input = document.createElement("input");
+      Object.assign(input, { type: "color", value: token(key) });
+      input.oninput = () => paintToken(key, input.value);
+      row.append(Object.assign(document.createElement("span"), { textContent: name }),
+                 input, document.createElement("span"));
+      rows.appendChild(row);
+    }
+  }
+
+  const out = document.createElement("textarea");
+  out.spellcheck = false; out.style.display = "none";
+  const buttons = document.createElement("div");
+  buttons.className = "row";
+  const copy = Object.assign(document.createElement("button"), { textContent: "copy" });
+  copy.onclick = () => {
+    const keys = LOOK_KEYS();
+    const pad = Math.max(...keys.concat(FILM_SLIDERS).map(s => s[0].length)) + 2;
+    /* every token this file declares, in its order, so the block drops straight in */
+    const ORDER = ["ground", "deep", "actuated", "passive", "hull", "edge", "gate",
+                   "accent", "target", "trail", "hairline"];
+    const block =
+      ":root {\n"
+      + ORDER.map(k => "  --" + (k + ":").padEnd(10) + " " + token(k).toUpperCase() + ";").join("\n")
+      + "\n}\n\nconst LOOK = {\n"
+      + keys.map(([k]) => "  " + (k + ":").padEnd(pad) + " " + LOOK[k] + ",").join("\n")
+      + "\n};\n\nconst FILM = {\n"
+      + FILM_SLIDERS.map(([k]) => "  " + (k + ":").padEnd(pad) + " " + FILM[k] + ",").join("\n")
+      + "\n  " + "format:".padEnd(pad) + " " + JSON.stringify(FILM.format) + ",\n};\n";
+    out.value = block; out.style.display = "block"; out.select();
+    if (navigator.clipboard) navigator.clipboard.writeText(block).catch(() => {});
+  };
+  const reset = Object.assign(document.createElement("button"), { textContent: "reset" });
+  reset.onclick = () => location.reload();
+  buttons.append(copy, reset);
+  box.append(buttons, out);
+  document.body.appendChild(box);
+}
+
+/* Everything about *when*: which mode the studio is in, how fast the swim runs when
+   it is running, and which moments it holds when it is not.  The two halves swap --
+   a playback speed means nothing to a still, and a list of poses means nothing to an
+   animation, so neither is left on screen to be fiddled with in the mode where it
+   does not apply. */
+let playRows = null, staticRows = null, refreshFilm = () => {};
+function onModeChange() {
+  const still = MODE === "static";
+  if (playRows) playRows.style.display = still ? "none" : "";
+  if (staticRows) staticRows.style.display = still ? "" : "none";
+  /* A strobe is not at one moment, so a bar saying which moment it is at has nothing
+     to say.  It was never in an export either way -- the canvas holds no DOM. */
+  track.style.display = still ? "none" : "";
+  refreshFilm();
+}
+
+function timePanel() {
+  const box = shell("time", "time");
+
+  /* Playback is the swim moving; static is the swim held still at several moments at
+     once.  Switching is not a rendering trick laid over the animation -- both go
+     through the same draw(), so a still cannot show something playback would not. */
+  const modeRow = document.createElement("label");
+  modeRow.className = "mode";
+  const mode = document.createElement("select");
+  for (const [value, label] of [["playback", "playback"], ["static", "static"]])
+    mode.appendChild(Object.assign(document.createElement("option"),
+                                   { value, textContent: label }));
+  mode.value = MODE;
+  mode.onchange = () => {
+    MODE = mode.value;
+    if (MODE === "static") {
+      playing = false;
+      if (!STAMPS.length) seedStamps(5);
+      rebuild();
+    }
+    onModeChange();
+    draw(frame);
+  };
+  modeRow.appendChild(mode);
+  box.appendChild(modeRow);
+
+  playRows = document.createElement("div");
+  box.appendChild(playRows);
+  for (const spec of PLAY_SLIDERS) slider(playRows, LOOK, spec);
+
+  staticRows = document.createElement("div");
+  box.appendChild(staticRows);
+  for (const spec of POSE_SLIDERS) slider(staticRows, LOOK, spec);
+
+  const cycles = f => (f / DATA.per_cycle).toFixed(2);
+  const list = document.createElement("div");
+
+  function rebuild() {
+    list.textContent = "";
+    STAMPS.forEach((value, n) => {
+      const row = document.createElement("label");
+      row.className = "stamp";
+      const input = document.createElement("input");
+      Object.assign(input, { type: "range", min: 0, max: NF - 1, step: 1, value });
+      const out = Object.assign(document.createElement("span"),
+                                { textContent: cycles(value) });
+      input.oninput = () => {
+        STAMPS[n] = parseFloat(input.value);
+        out.textContent = cycles(STAMPS[n]);
+        draw(frame);
+      };
+      /* sort on release, not on every pixel: reordering mid-drag steals the handle */
+      input.onchange = () => { STAMPS.sort((a, b) => a - b); rebuild(); draw(frame); };
+      const kill = Object.assign(document.createElement("button"),
+                                 { textContent: "\u00d7", title: "remove" });
+      kill.className = "kill";
+      kill.onclick = e => {
+        e.preventDefault();
+        STAMPS.splice(n, 1); rebuild(); refreshFilm(); draw(frame);
+      };
+      row.append(input, out, kill);
+      list.appendChild(row);
+    });
+    if (!STAMPS.length) {
+      list.appendChild(Object.assign(document.createElement("p"),
+        { className: "note", textContent: "no poses \u2014 add one, or spread" }));
+    }
+    refreshFilm();
+  }
+
+  const spread = { n: 5 };
+  slider(staticRows, spread, ["n", "how many", 2, 12, 1]);
+
+  /* Halfway into the longest stretch with no pose in it.  The scrub bar is hidden in
+     static mode, so there is no playhead to add at, and the widest gap is where
+     another pose is most likely wanted anyway. */
+  function widestGap() {
+    if (!STAMPS.length) return Math.round((NF - 1) / 2);
+    const edges = [0].concat(STAMPS.slice().sort((a, b) => a - b), NF - 1);
+    let best = -1, at = Math.round((NF - 1) / 2);
+    for (let i = 1; i < edges.length; i++) {
+      if (edges[i] - edges[i - 1] > best) {
+        best = edges[i] - edges[i - 1];
+        at = Math.round((edges[i] + edges[i - 1]) / 2);
+      }
+    }
+    return at;
+  }
+
+  const buttons = document.createElement("div");
+  buttons.className = "row";
+  const add = Object.assign(document.createElement("button"), { textContent: "add" });
+  add.title = "add a pose in the widest gap";
+  add.onclick = () => {
+    STAMPS.push(widestGap());
+    STAMPS.sort((a, b) => a - b);
+    rebuild(); draw(frame);
+  };
+  const even = Object.assign(document.createElement("button"), { textContent: "spread" });
+  even.title = "replace the poses with n spread evenly over the swim";
+  even.onclick = () => { seedStamps(spread.n); rebuild(); draw(frame); };
+  const clear = Object.assign(document.createElement("button"), { textContent: "clear" });
+  clear.onclick = () => { STAMPS = []; rebuild(); draw(frame); };
+  buttons.append(add, even, clear);
+  staticRows.append(buttons, list);
+
+  rebuild();
+  document.body.appendChild(box);
+}
+
+function filmPanel() {
+  const box = shell("film", "film");
+  const note = document.createElement("p");
+  note.className = "note";
+
+  /* The film is the swim as it is framed right now -- same camera, same look, and
+     none of the panels, since neither a stream nor a toBlob sees the DOM on top. */
+  const go = Object.assign(document.createElement("button"), { textContent: "record" });
+  if (!RECORDABLE) go.title = "this browser cannot record a canvas";
+  go.onclick = async () => {
+    if (go.disabled) return;
+    go.disabled = true;
+    try { await record(t => { go.textContent = t; }); }
+    catch (e) { go.textContent = "failed"; console.error(e); }
+    setTimeout(() => { go.textContent = "record"; refresh(); }, 2500);
+  };
+
+  /* What the take will be, before committing eight seconds to finding out. */
+  const refresh = () => {
+    const size = Math.round(W * FILM.scale) + "\u00d7" + Math.round(H * FILM.scale);
+    if (MODE === "static") {
+      note.textContent = size + "  \u00b7  " + STAMPS.length + " poses  \u00b7  png";
+    } else {
+      const type = pickType();
+      note.textContent = size
+        + "  \u00b7  " + (NF ? (NF / LOOK.fps).toFixed(1) : "?") + " s"
+        + "  \u00b7  " + Math.round(Math.min(LOOK.fps, FILM.fps)) + " fps"
+        + "  \u00b7  " + (type ? extFor(type) : "no encoder");
+    }
+    go.disabled = !RECORDABLE || MODE === "static";
+    go.title = MODE === "static" ? "a still swim is not a film" : "";
+  };
+  refreshFilm = refresh;
+
+  for (const spec of FILM_SLIDERS) slider(box, FILM, spec, refresh);
+
+  const row = document.createElement("label");
+  const pick = document.createElement("select");
+  for (const [value, label] of [["auto", "mp4 if able"], ["mp4", "mp4 only"],
+                                ["webm", "webm"]]) {
+    pick.appendChild(Object.assign(document.createElement("option"), { value, textContent: label }));
+  }
+  pick.value = FILM.format;
+  pick.onchange = () => { FILM.format = pick.value; refresh(); };
+  row.append(Object.assign(document.createElement("span"), { textContent: "format" }),
+             pick, document.createElement("span"));
+  box.appendChild(row);
+  box.appendChild(note);
+
+  const buttons = document.createElement("div");
+  buttons.className = "row";
+  const still = Object.assign(document.createElement("button"),
+                            { textContent: "screenshot" });
+  still.title = "save what is on the canvas, at the export scale";
+  still.onclick = async () => {
+    still.disabled = true;
+    try { await saveImage(t => { still.textContent = t; }); }
+    catch (e) { still.textContent = "failed"; console.error(e); }
+    setTimeout(() => { still.textContent = "screenshot";
+                       still.disabled = false; }, 2500);
+  };
+  buttons.append(go, still);
+  box.appendChild(buttons);
+  document.body.appendChild(box);
+  refresh();
+  window.addEventListener("resize", refresh);
+}
+
+if (STUDIO) { lookPanel(); timePanel(); filmPanel(); onModeChange(); }
+
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 120));
+window.addEventListener("keydown", e => {
+  if (e.key === " " && e.target === document.body) { playing = !playing; e.preventDefault(); }
+});
+</script>
